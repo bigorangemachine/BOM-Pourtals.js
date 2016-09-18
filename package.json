@@ -1,0 +1,28 @@
+{
+  "name": "Pourtals.js",
+  "description": "Big Orange Machines's Pourtals - An advanced Promise system for Nodejs & JavaScript. Inspired by the video game Portal and those great Personality Cores.",
+  "homepage": "https://github.com/bigorangemachine/BOM-Pourtals.js",
+  "keywords": [
+    "framework",
+    "helper"
+  ],
+  "author": "Big Orange Machine <bigorangemachine@gmail.com>",
+  "contributors": [
+    {
+      "name": "Big Orange Machine",
+      "email": "bigorangemachine@gmail.com"
+    }
+  ],
+  "engines": { "node" : ">=4.0" },
+  "dependencies": {
+    "merge": "^1.2.0",
+    "underscore": "^1.8.3",
+    "bom-utils": "git+https://github.com/bigorangemachine/BOM-nodejs-utils.git#v0.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bigorangemachine/BOM-Pourtals.js.git"
+  },
+  "main": "index.js",
+  "version": "0.0.1"
+}
