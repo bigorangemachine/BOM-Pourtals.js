@@ -1,6 +1,3 @@
-/*
-    Any piece work should be written here.
-*/
 //modules
 var _ = require('underscore'),//http://underscorejs.org/
     merge = require('merge'),//allows deep merge of objects
@@ -24,7 +21,7 @@ var doc_root='',
         'config':'./config',
         'found_params':[]
     };
-root_params.config=root_params.config+'.dev';
+root_params.config=root_params.config+'.test';
 var config=require('../configurator')(process, fs, root_params);
 doc_root=root_params.doc_root;
 
