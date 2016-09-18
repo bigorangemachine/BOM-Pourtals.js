@@ -1,6 +1,6 @@
 //
 module.exports=function(){//dependancies
-    var GLaDioS=require('GLaDioS')(),utils=require('bom-utils'),merge=require('merge'),_=require('underscore'),c0reJob=require('./c0reJob')();
+    var GLaDioS=require('GLaDioS')(),utils=require('bom-utils'),merge=require('merge'),_=require('underscore');
 
     //statics
     var schema={'data':{}},// status, unique_id, is_next, result_args, severity & priority are readonly! - data is developer's storage
@@ -47,7 +47,6 @@ module.exports=function(){//dependancies
         this._SCOPE_={
             //'resolved_list':resolved_whitelist,
             'inital_opts':utils.clone( (typeof(opts)!=='undefined'?opts:schema) ),//intensive! - break pass by reference
-            'job':new c0reJob(),
             'result_args':[],
             'priority':(typeof(opts.priority)==='number' && !isNaN(opts.priority) && opts.priority>0?Math.abs(Math.ceil(opts.priority)):0),
             'severity':(typeof(opts.severity)==='string' && _.indexOf(severity_whitelist, opts.severity.toLowerCase())!==-1?opts.severity:severity_whitelist[0]),
