@@ -144,7 +144,7 @@ module.exports = function(){//dependancies
             else if(typeof(funcIn)!=='function'){throw new Error("[c0redP] Binding action was passed invalid callback (2nd Argument); function expected.");return false;}
             else if(typeof(self._SCOPE_.large_queue[typeIn])==='undefined'){throw new Error("[c0redP] Provided type '"+typeIn.toString()+"' is not set in 'large_queue'.");return false;}
             var output=self._SCOPE_.large_queue[typeIn].enqueue(funcIn,function(){
-                console.log('large_queue['+typeIn+'] DONE!');
+                console.log('on['+typeIn+'] DONE!',arguments);
             },optsIn);//do not use public large_queue!!!!
 // console.log('[c0redP] ON( '+typeIn.toUpperCase()+'): self._SCOPE_.large_queue['+typeIn+'].unique_prefix: ',self._SCOPE_.large_queue[typeIn].unique_prefix);//
 // console.log("\n");

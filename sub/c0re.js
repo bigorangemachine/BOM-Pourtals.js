@@ -338,8 +338,12 @@ throw new Error("This needs to be changed");process.exit();
             callbacks=(typeof(callbacks)==='function'?{'pos':callbacks,'neg':callbacks}:callbacks);
 //console.log('[C0RE enqueue] callbacks',callbacks,"\n",'self.unique_prefix ',self.unique_prefix,"\n");
             if(typeof(funcIn)!=='function'){throw new Error("[c0re] Could not 'enqueue' because first argument was not a function");return false;}
-            if(typeof(callbacks)!=='object'){throw new Error("[c0re] Could not 'enqueue' because second argument was not a function.");return false;}
-            else if(typeof(callbacks.pos)!=='function' || typeof(callbacks.neg)!=='function'){throw new Error("[c0re] Could not 'enqueue' because second argument was not an object containing 'pos' and 'neg' which are functions.");return false;}
+            if(arguments.length>=2){
+                if(typeof(callbacks)==='function'){callbacks={'pos':callbacks,'neg':callbacks};}
+                else if(typeof(callbacks)!=='object'){throw new Error("[c0re] Could not 'enqueue' because second argument was not a function.");return false;}
+                else if(typeof(callbacks.pos)!=='function' || typeof(callbacks.neg)!=='function'){throw new Error("[c0re] Could not 'enqueue' because second argument was not an object containing 'pos' and 'neg' which are functions.");return false;}
+                else if(typeof(callbacks.idle)!=='undefined' && typeof(callbacks.idle)!=='function'){throw new Error("[c0re] Could not 'enqueue' because second argument is an object containing 'idle' it is not a function.");return false;}
+            }
 
             callbacks=merge(true,{
                 'do':funcIn,
@@ -504,7 +508,7 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
                     'encap_do':false
                 },
                 output={
-                    '$seg':fullQue,
+                    '$segs':fullQue.concat([]),
                     '$self':coreModelIn,
                     '$scope':false,
                     '$data':coreModelIn.data,

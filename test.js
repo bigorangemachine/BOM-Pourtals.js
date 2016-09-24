@@ -1,13 +1,6 @@
 //modules
 var _ = require('underscore'),//http://underscorejs.org/
     merge = require('merge'),//allows deep merge of objects
-    fs = require('fs'),
-    http = require('http'),
-    url = require('url'),
-    querystring = require('querystring'),
-    md5 = require('md5'),
-    repeat = require('string.prototype.repeat'),//FOR EASY DEBUGGING :D
-    JSON = require('JSON'),
     utils = require('bom-utils'),
     vars = require('bom-utils/vars');
 //custom modules - for WIP
@@ -21,9 +14,9 @@ var doc_root='',
         'config':'./config',
         'found_params':[]
     };
-root_params.config=root_params.config+'.test';
-var config=require('../configurator')(process, fs, root_params);
-doc_root=root_params.doc_root;
+
+
+
 
 
 var do_terminate=function(reportTrace){
@@ -44,11 +37,13 @@ var do_terminate=function(reportTrace){
         //custom modules
         var c0redPTests=require('./sub/tests')(),
             c0reModel=require('./sub/c0reModel')(),
+            c0re=require('./sub/c0re')(),
             do_console_err=false,
             do_err=function(input){
                 if(do_console_err){
                     console.error(input);}
-            }
+            },
+            testc0re={},
             test1={},
             test2={},
             test3={},
@@ -95,6 +90,52 @@ var do_terminate=function(reportTrace){
                     throw new Error(errstr);
                 }
                 doNext();
+            },
+            function(doNext){
+                try{
+                    testc0re=new c0re(function(){
+                        console.log("[C0RE TEST] TEST CORE SUCCESS CALLBACK");
+                    });
+                }catch(e){do_err("[C0RE TEST] Could not build 'NO ARG'\n"+e.toString());}
+
+
+                doNext();
+            },
+            function(doNext){
+                try{
+                    testc0re.enqueue(function(pkg,pos,neg){
+                        try{pos();}
+                        catch(eInner){do_err("[C0RE TEST] Could not enqueue 'POS FUNC' single arg\n"+eInner.toString());}
+                        doNext();
+                    });
+                }catch(e){
+                    do_err("[C0RE TEST] Could not build 'SINGLE ARG'\n"+e.toString());
+                    doNext();
+                }
+                testc0re.execute();
+            },
+            function(doNext){
+                try{
+                    testc0re.enqueue(function(pkg,pos,neg){
+                        try{pos();}
+                        catch(eInner){do_err("[C0RE TEST] Could not enqueue 'POS FUNC' TWO arg\n"+eInner.toString());}
+                    },
+                    function(){doNext();});
+                }catch(e){
+                    do_err("[C0RE TEST] Could not build 'TWO ARG'\n"+e.toString());
+                    doNext();
+                }
+            },
+            function(doNext){
+                try{
+                    testc0re.enqueue(function(pkg,pos,neg){
+                        try{pos();}
+                        catch(eInner){do_err("[C0RE TEST] Could not enqueue 'POS FUNC' TWO arg\n"+eInner.toString());}
+                    },[]);
+                }catch(e){
+                    do_err("[C0RE TEST] Could not build 'TWO ARG'\n"+e.toString());
+                    doNext();
+                }
             },
             function(doNext){
                 c0redPTests.typical(doNext);
