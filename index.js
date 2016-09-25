@@ -43,6 +43,7 @@ module.exports = function(){//dependancies
 
         this._SCOPE_={
             'large_queue':{},
+            'loud':(typeof(opts.loud)==='boolean'?opts.loud:false),
             'silent':(typeof(opts.silent)==='boolean'?opts.silent:true),
             'status': false
         };
@@ -66,6 +67,7 @@ module.exports = function(){//dependancies
             this.__defineGetter__('readonlyitem', readonly_getter('readonlyitem'));
             this.__defineGetter__('status', readonly_getter_SCOPE('status'));
             this.__defineGetter__('silent', readonly_getter_SCOPE('silent'));
+            this.__defineGetter__('loud', readonly_getter_SCOPE('loud'));
         }else{
             //protected
 
@@ -74,48 +76,49 @@ module.exports = function(){//dependancies
             Object.defineProperty(this, 'readonlyitem', {'get': readonly_getter('readonlyitem')});
             Object.defineProperty(this, 'status', {'get': readonly_getter_SCOPE('status')});
             Object.defineProperty(this, 'silent', {'get': readonly_getter_SCOPE('silent')});
+            Object.defineProperty(this, 'loud', {'get': readonly_getter_SCOPE('loud')});
         }
         //var large_queue={};
         event_whitelist.forEach(function(v,i,arr){
             (function(evKey){
                 if(evKey=='init'){
                     var done_func_pos=function(){
-                            console.log('Wheatley - v[init] is done successful');
+                            if(self.loud){console.log('Wheatley - v[init] is done successful');}
     //console.log("self._SCOPE_.large_queue['ready'].list: ",self._SCOPE_.large_queue['ready'].list.all.length);console.log("self._SCOPE_.large_queue['ready'].list: ",self._SCOPE_.large_queue['ready'].list.all);process.exit();
                             do_ready.apply(self);
                         },
                         done_func_neg=function(){
-                            console.log('Wheatley - v[init] is done unsuccessful');
+                            if(self.loud){console.log('Wheatley - v[init] is done unsuccessful');}
                             self.do_exit();// self._SCOPE_.large_queue['exit'].execute();
                         };
                 }else if(evKey=='ready'){
                     var done_func_pos=function(){
-                            console.log('Wheatley - v[ready] pos fired! is done successful');
+                            if(self.loud){console.log('Wheatley - v[ready] pos fired! is done successful');}
                             do_start.apply(self);
                         },
                         done_func_neg=function(){
-                            console.log('Wheatley - v[ready] neg fired! is done unsuccessful');
+                            if(self.loud){console.log('Wheatley - v[ready] neg fired! is done unsuccessful');}
                             self.do_exit();// self._SCOPE_.large_queue['exit'].execute();
                         };
                 }else if(evKey=='start'){
                     var done_func_pos=function(){//on success shut down
-                            console.log('Paranoia - v[start] pos fired! is done successful');
+                            if(self.loud){console.log('Paranoia - v[start] pos fired! is done successful');}
                             self.do_exit();
                         },
                         done_func_neg=function(){
-                            console.log('Paranoia - v[start] neg fired! is done unsuccessful');
+                            if(self.loud){console.log('Paranoia - v[start] neg fired! is done unsuccessful');}
                             self.do_exit();
                         };
                         // done_func_pos=self.do_exit.bind(self);
                         // done_func_neg=self.do_exit.bind(self);
                 }else{// if(evKey=='exit'){
                     var done_func_pos=function(){
-                            console.log('Paranoia - v[exit] pos fired! is done successful');
+                            if(self.loud){console.log('Paranoia - v[exit] pos fired! is done successful');}
                             if(typeof(endFunc)==='function'){endFunc();}
                             else{process.exit();}
                         },
                         done_func_neg=function(){
-                            console.log('Paranoia - v[exit] neg fired! is done unsuccessful');
+                            if(self.loud){console.log('Paranoia - v[exit] neg fired! is done unsuccessful');}
                             if(typeof(endFunc)==='function'){endFunc();}
                             else{process.exit();}
                         };
@@ -143,9 +146,7 @@ module.exports = function(){//dependancies
             if(typeof(typeIn)!=='string' || _.indexOf(event_whitelist,typeIn)===-1){throw new Error("[c0redP] Binding action was passed invalid typeIn (1st Argument) is '"+typeIn.toString()+"' expecting '"+event_whitelist.join(', ')+"'.");return false;}
             else if(typeof(funcIn)!=='function'){throw new Error("[c0redP] Binding action was passed invalid callback (2nd Argument); function expected.");return false;}
             else if(typeof(self._SCOPE_.large_queue[typeIn])==='undefined'){throw new Error("[c0redP] Provided type '"+typeIn.toString()+"' is not set in 'large_queue'.");return false;}
-            var output=self._SCOPE_.large_queue[typeIn].enqueue(funcIn,function(){
-                console.log('on['+typeIn+'] DONE!',arguments);
-            },optsIn);//do not use public large_queue!!!!
+            var output=self._SCOPE_.large_queue[typeIn].enqueue(funcIn,function(){/*WIP*/},optsIn);//do not use public large_queue!!!!
 // console.log('[c0redP] ON( '+typeIn.toUpperCase()+'): self._SCOPE_.large_queue['+typeIn+'].unique_prefix: ',self._SCOPE_.large_queue[typeIn].unique_prefix);//
 // console.log("\n");
             return output;

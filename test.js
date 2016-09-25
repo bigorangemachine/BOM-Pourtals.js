@@ -38,7 +38,7 @@ var do_terminate=function(reportTrace){
         var c0redPTests=require('./sub/tests')(),
             c0reModel=require('./sub/c0reModel')(),
             c0re=require('./sub/c0re')(),
-            do_console_err=false,
+            do_console_err=true,
             do_err=function(input){
                 if(do_console_err){
                     console.error(input);}
@@ -104,9 +104,14 @@ var do_terminate=function(reportTrace){
             function(doNext){
                 try{
                     testc0re.enqueue(function(pkg,pos,neg){
-                        try{pos();}
-                        catch(eInner){do_err("[C0RE TEST] Could not enqueue 'POS FUNC' single arg\n"+eInner.toString());}
-                        doNext();
+                        var delaytime=2;
+                        //console.log("============== WAITING "+delaytime+" SECONDS ==============");
+                        setTimeout(function(){
+                            //console.log("============== "+delaytime+" SECONDS AFTER ==============");
+                            try{pos();}
+                            catch(eInner){do_err("[C0RE TEST] Could not enqueue 'POS FUNC' single arg\n"+eInner.toString());}
+                            doNext();
+                        },delaytime * 1000);
                     });
                 }catch(e){
                     do_err("[C0RE TEST] Could not build 'SINGLE ARG'\n"+e.toString());
@@ -127,15 +132,16 @@ var do_terminate=function(reportTrace){
                 }
             },
             function(doNext){
+                var did_fail=false;
                 try{
                     testc0re.enqueue(function(pkg,pos,neg){
-                        try{pos();}
-                        catch(eInner){do_err("[C0RE TEST] Could not enqueue 'POS FUNC' TWO arg\n"+eInner.toString());}
-                    },[]);
+                        //this is actually just an example; nothing to do here!
+                    },[]);//[] testing failure!
                 }catch(e){
-                    do_err("[C0RE TEST] Could not build 'TWO ARG'\n"+e.toString());
-                    doNext();
+                    did_fail=true;
                 }
+                if(did_fail===false){do_err("[C0RE TEST] Building 'TWO ARG' succeed when it should have failed.\n"+e.toString());}
+                doNext();
             },
             function(doNext){
                 c0redPTests.typical(doNext);

@@ -338,13 +338,14 @@ throw new Error("This needs to be changed");process.exit();
             callbacks=(typeof(callbacks)==='function'?{'pos':callbacks,'neg':callbacks}:callbacks);
 //console.log('[C0RE enqueue] callbacks',callbacks,"\n",'self.unique_prefix ',self.unique_prefix,"\n");
             if(typeof(funcIn)!=='function'){throw new Error("[c0re] Could not 'enqueue' because first argument was not a function");return false;}
-            if(arguments.length>=2){
+            if(arguments.length>=2){//self.enqueue(func,func,{}) ====> self.enqueue(funcIn,{'pos':func,'neg':func}) ====> self.enqueue(funcIn,{'pos':func,'neg':func}, {})
                 if(typeof(callbacks)==='function'){callbacks={'pos':callbacks,'neg':callbacks};}
                 else if(typeof(callbacks)!=='object'){throw new Error("[c0re] Could not 'enqueue' because second argument was not a function.");return false;}
                 else if(typeof(callbacks.pos)!=='function' || typeof(callbacks.neg)!=='function'){throw new Error("[c0re] Could not 'enqueue' because second argument was not an object containing 'pos' and 'neg' which are functions.");return false;}
                 else if(typeof(callbacks.idle)!=='undefined' && typeof(callbacks.idle)!=='function'){throw new Error("[c0re] Could not 'enqueue' because second argument is an object containing 'idle' it is not a function.");return false;}
+            }else if(arguments.length===1){
+                callbacks={'pos':function(){},'neg':function(){}};//enqueue doesn't require callback function; however strict enforcement is required in the execution
             }
-
             callbacks=merge(true,{
                 'do':funcIn,
                 'idle':(typeof(callbacks)==='object' && typeof(callbacks.idle)==='function'?callbacks.idle:false),
