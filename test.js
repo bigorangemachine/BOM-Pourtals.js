@@ -120,21 +120,20 @@ var do_terminate=function(reportTrace){
                     testc0re.enqueue(function(pkg,pos,neg){
                         try{pos();}
                         catch(eInner){do_err("[C0RE TEST] Could not 'POS FUNC' for the 'enqueue test'.\n"+eInner.toString());}
-                    },
-                    function(){doNext();});
+                    });
                 }catch(e){
                     do_err("[C0RE TEST] Could not enqueue; setup for further execute, enqueue to success test is expected to fail.\n"+e.toString());
-                    doNext();
                 }
+                doNext();
             },
             function(doNext){
-                do_msg("Running execute-async-enqueue test.");
+                var delaytime=2;
+                do_msg("Running execute-async-enqueue test: waiting "+delaytime+"s.");
                 try{
                     testc0re.enqueue(function(pkg,pos,neg){
-                        var delaytime=2;
-                        //console.log("============== WAITING "+delaytime+" SECONDS ==============");
+//console.log("============== WAITING "+delaytime+" SECONDS ==============");
                         setTimeout(function(){
-                            //console.log("============== "+delaytime+" SECONDS AFTER ==============");
+//console.log("============== "+delaytime+" SECONDS AFTER ==============");
                             try{pos();}
                             catch(eInner){do_err("[C0RE TEST] Could not 'POS FUNC' for the 'execute-async-enqueue test'.\n"+eInner.toString());}
                             doNext();
@@ -185,7 +184,13 @@ var do_terminate=function(reportTrace){
         for(var d=0;d<do_sets.length;d++){
             binded_dos.push((function(index){
                 return function(){
-                    do_sets[index]((binded_dos.length-1>index && typeof(binded_dos[index+1])==='function'?binded_dos[index+1]:do_terminate));//do_terminate(false);
+                    console.log("\n===== Running #"+(index+1)+" =====");
+                    var next_func=(binded_dos.length-1>index && typeof(binded_dos[index+1])==='function'?binded_dos[index+1]:do_terminate);//do_terminate(false);
+
+                    do_sets[index](function(){
+                        console.log("\n===== Completed Test #"+(index+1)+" =====");
+                        next_func();
+                    });
                 };
             })(d));
         }

@@ -42,7 +42,7 @@ module.exports = function(){//dependancies
         //wrapped so I can use 'self' (this gets confusing in the below with all the hidden scopes)
         (function(){
         var self=this,info_obj={},fps={},silent_obj={},small_cycle_obj={},large_cycle_obj={},pool_size={},readonly_opts={};
-var queue_use_RO=false;
+var queue_use_RO=false;//this was testing getters/setters... should remove this
 //queue_use_RO=true;
 
         self._SCOPE_={
@@ -90,7 +90,6 @@ var queue_use_RO=false;
                 },
                 'free_size':function(){
                     var pool_diff=self.pool_size-self._SCOPE_.info_obj.idlist.queue.length;//+self._SCOPE_.info_obj.idlist.complete.length
-//console.log("pool_diff: ",pool_diff,"\n",'self.pool_size ',self.pool_size, ' - ',self._SCOPE_.info_obj.idlist.queue.length);//, ' + ',self._SCOPE_.info_obj.idlist.complete.length
                     return (pool_diff>=0?pool_diff:0);
                 },
                 'all_complete':function(){
@@ -116,7 +115,7 @@ var queue_use_RO=false;
                     'val':opts.fps,
                     'setter':function(v){
                         if(!self.fps_readonly){
-throw new Error("This needs to be changed");process.exit();
+throw new Error("This needs to be changed");process.exit();//does it?! - building tests check after that
                             var clean_num=v;
                             clean_num=Math.abs(Math.ceil( (typeof(clean_num)!=='number'?parseInt(clean_num):clean_num) ));
                             clean_num=(isNaN(clean_num) || clean_num===null || clean_num<=0?self.fps:clean_num);
@@ -128,7 +127,7 @@ throw new Error("This needs to be changed");process.exit();
                 }
             },
             'readonly_opts':{
-                'once_queue':[],'queue':[], //'once_queue':self._SCOPE_.temp_queue,'queue':self._SCOPE_.queue, <- NOT USED!
+                'temp_queue':[],'queue':[], //'temp_queue':self._SCOPE_.temp_queue,'queue':self._SCOPE_.queue, <- NOT USED!
                 'cycle_type':opts.cycle_type,'tasker_type':opts.tasker_type,
                 'fps_readonly':opts.fps_readonly,
                 'determinative':(typeof(opts.determinative)==='string' && _.indexOf(determinative_whitelist, opts.determinative.toLowerCase())!==-1?opts.determinative.toLowerCase():determinative_whitelist[0]),
@@ -136,7 +135,7 @@ throw new Error("This needs to be changed");process.exit();
             }
         };
 
-        var async_getter=function(keyIn){return function(){return self._SCOPE_.async_opts[keyIn].val}};
+        var async_getter=function(keyIn){return function(){return self._SCOPE_.async_opts[keyIn].val;};};
         fps={//should be obsolete
             'val':opts.fps,
             'fpsgetter':function(){return self._SCOPE_.fps.val;},
@@ -231,16 +230,17 @@ throw new Error("This needs to be changed");process.exit();
                 };
             },
             scope_get=function(keyIn){
-                return function(){if(keyIn=='temp'){return self._SCOPE_.temp_queue;}else{return self._SCOPE_.queue;}};
+                return function(){
+                    if(keyIn=='temp'){return self._SCOPE_.temp_queue;}else{return self._SCOPE_.queue;}};
             };
 
         if((typeof(Object.defineProperty)!=='function' && (typeof(this.__defineGetter__)==='function' || typeof(this.__defineSetter__)==='function'))){//use pre IE9
             //readonly!
             this.__defineGetter__('silent', function(){return silent_obj._val;});
-            this.__defineGetter__('pool_size', function(){return async_getter('pool_size').apply(self).val;});
+            this.__defineGetter__('pool_size', function(){return async_getter('pool_size').apply(self);});
             this.__defineGetter__('fps_readonly', readonly_getter('fps_readonly'));
             if(queue_use_RO){
-                this.__defineGetter__('temp_queue', readonly_getter('once_queue'));
+                this.__defineGetter__('temp_queue', readonly_getter('temp_queue'));
                 this.__defineGetter__('queue', readonly_getter('queue'));
             }
             this.__defineGetter__('determinative', readonly_getter('determinative'));
@@ -250,7 +250,7 @@ throw new Error("This needs to be changed");process.exit();
             this.__defineGetter__('list', function(){return self._SCOPE_.info_obj.idlist;});
 
             //getters & setters!
-            this.__defineGetter__('fps', function(){return async_getter('fps').apply(self).val;});
+            this.__defineGetter__('fps', function(){return async_getter('fps').apply(self);});
             this.__defineSetter__('fps', function(v){self._SCOPE_.async_opts['fps'].setter(v);});
 
             if(!queue_use_RO){
@@ -270,11 +270,11 @@ throw new Error("This needs to be changed");process.exit();
         }else{
             //readonly!
             Object.defineProperty(this, 'silent', {'get': function(){return silent_obj._val;}});
-            Object.defineProperty(this, 'pool_size', {'get': function(){return async_getter('pool_size').apply(self).val;}});
+            Object.defineProperty(this, 'pool_size', {'get': function(){return async_getter('pool_size').apply(self);}});
             Object.defineProperty(this, 'fps_readonly', {'get': readonly_getter('fps_readonly')});
 
             if(queue_use_RO){
-                Object.defineProperty(this, 'temp_queue', {'get': readonly_getter('once_queue')});
+                Object.defineProperty(this, 'temp_queue', {'get': readonly_getter('temp_queue')});
                 Object.defineProperty(this, 'queue', {'get': readonly_getter('queue')});
             }
             Object.defineProperty(this, 'determinative', {'get': readonly_getter('determinative')});
@@ -284,7 +284,7 @@ throw new Error("This needs to be changed");process.exit();
             Object.defineProperty(this, 'list', {'get': function(){return self._SCOPE_.info_obj.idlist;}});
 
             //getters & setters!
-            Object.defineProperty(this, 'fps', {'get': function(){return async_getter('fps').apply(self).val;}, 'set':function(v){self._SCOPE_.async_opts['fps'].setter(v);} });
+            Object.defineProperty(this, 'fps', {'get': function(){return async_getter('fps').apply(self);}, 'set':function(v){self._SCOPE_.async_opts['fps'].setter(v);} });
             if(!queue_use_RO){
                 Object.defineProperty(this, 'queue', {'get': scope_get(), 'set': scope_set()});
                 Object.defineProperty(this, 'temp_queue', {'get': scope_get('temp'), 'set': scope_set('temp')});
@@ -296,31 +296,17 @@ throw new Error("This needs to be changed");process.exit();
                 Object.defineProperty(large_cycle_obj, 'id', {'get': cycle_get('large'), 'set': cycle_set('large')});
                 Object.defineProperty(small_cycle_obj, 'id', {'get': cycle_get('small'), 'set': cycle_set('small')});
         }
-        try{
-            self._SCOPE_.async_opts.pool_size.setter(opts.pool_size);//self cleaning ^_^
-        }catch(e){
-            if(!self.silent){console.warn("[c0re] Pool size initialization threw an error:\n"+e.toString());}
-        }
 
-        opts.hook_ins=(typeof(opts.hook_ins)!=='object'?{}:opts.hook_ins);
-        this.hook_ins=new GLaDioS({
-            'task_result': (typeof(opts.hook_ins.task_result)==='function'?opts.hook_ins.task_result:false),
-            'xxxxxxx': (typeof(opts.hook_ins.xxxxxxx)==='function'?opts.hook_ins.xxxxxxx:false)
-        });
-        self.hook_ins.change_text('task_result', "[c0re] When task-chain has completed; this is the callback during the determinative phase to evaluate the result of the tasks");
-        self.hook_ins.change_text('xxxxxxx', "[c0re] aaaaaa");
-
-
-        var do_task=function(){
+        var do_task=function(){//not used?!
                 var self=this;
             },
             enqueue_once=function(func){//super next :D
                 var self=this;
                 if(queue_use_RO){
 //console.log("[c0re enqueue_once] USE READ ONLY MODE!");
-                    self._SCOPE_.readonly_opts.once_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
+                    self._SCOPE_.readonly_opts.temp_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
                 }else{
-                    self._SCOPE_.once_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
+                    self._SCOPE_.temp_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
                     // self.temp_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
                 }
                 self.rebuild_info();
@@ -339,6 +325,21 @@ throw new Error("This needs to be changed");process.exit();
                 }
                 self.rebuild_info();
             };
+
+        try{
+            self._SCOPE_.async_opts.pool_size.setter(self._SCOPE_.async_opts.pool_size.val);//self cleaning ^_^
+        }catch(e){
+            if(!self.silent){console.warn("[c0re] Pool size initialization threw an error:\n"+e.toString());}
+        }
+
+        opts.hook_ins=(typeof(opts.hook_ins)!=='object'?{}:opts.hook_ins);
+        this.hook_ins=new GLaDioS({
+            'task_result': (typeof(opts.hook_ins.task_result)==='function'?opts.hook_ins.task_result:false),
+            'xxxxxxx': (typeof(opts.hook_ins.xxxxxxx)==='function'?opts.hook_ins.xxxxxxx:false)
+        });
+        self.hook_ins.change_text('task_result', "[c0re] When task-chain has completed; this is the callback during the determinative phase to evaluate the result of the tasks");
+        self.hook_ins.change_text('xxxxxxx', "[c0re] aaaaaa");
+
 
         //these need private scope access!
         c0re.prototype.set_pool=function(numIn){//experimental - change the pool size later!
@@ -455,16 +456,18 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
                     for(var e=0;e<currenttempqueue.length;e++){
                         priority_list.push(Math.floor(currenttempqueue[e].priority));}
                     priority_list=_.uniq(priority_list, true);//sorted and duplicates removed
-//console.log("priority_list ",priority_list);
-                    if(currenttempqueue.length>0){
+//console.log("[c0re] priority_list ",priority_list);
+                    if(currenttempqueue.length>0){//merge in temp queue first!
                         doing_queue=doing_queue.concat(order_priority(currenttempqueue, priority_list));}
-//console.log('doing_queue A (currentqueue.length: '+currenttempqueue.length+') ',doing_queue);
-                    if(currentqueue.length>0){
+//console.log("[c0re] doing_queue A (currentqueue.length: "+currenttempqueue.length+") ",doing_queue);
+//console.log("[c0re] doing_queue A (currentqueue.length: "+currenttempqueue.length+") ");
+                    if(currentqueue.length>0){//now the public queue
                         doing_queue=doing_queue.concat(order_priority(currentqueue, priority_list));}
-//console.log('doing_queue B (currentqueue.length: '+currentqueue.length+') ',doing_queue);
+//console.log("[c0re] doing_queue B (currentqueue.length: "+currentqueue.length+") ",doing_queue);
+//console.log("[c0re] doing_queue B (currentqueue.length: "+currentqueue.length+") ");
 
                     task_queue=(doing_queue.length>actual_pool?doing_queue.slice(0,actual_pool):doing_queue.concat([]));
-//console.log("c0re] actual_pool: ",actual_pool,"\nself.unique_prefix: ",self.unique_prefix);
+//console.log("[c0re] actual_pool: ",actual_pool,"\nself.unique_prefix: ",self.unique_prefix);
                     if(task_queue.length>0){
 //console.log("[c0re] task_queue: ",task_queue[0],"\ntask_queue.unique_id: ",task_queue[0].unique_id,' - status ',task_queue[0].status);
                         if(task_queue.length>0){task_queue.forEach(function(task,i,arr){task.mark_next();});}
@@ -496,10 +499,6 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
             self.small_cycle.cancel_func();
             if(self._SCOPE_.info_obj.idlist.complete.length>=self.temp_queue.concat(self.queue).length){//safe ending
                 self.task_result();}
-        };
-        c0re.prototype.rebuild_info=function(){
-            var self=this;
-            self._SCOPE_.info_obj.rebuild.apply(self);
         };
         c0re.prototype.do_next=function(){
             var self=this,
@@ -592,69 +591,9 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
         }).apply(this);
 
     }
+    c0re.prototype.rebuild_info=function(){
+        var self=this;
+        self._SCOPE_.info_obj.rebuild.apply(self);
+    };
     return c0re;
 }
-/*
-function fpsHandler(fpsIn){
-	this.fps=fpsIn;
-	this.large_cycle_id=false;
-	this.request_animation_id=false;
-	this.callback_queue=[];
-	this.once_queue=[];
-	this.start_large_cycle();
-}
-fpsHandler.prototype.add_callback=function(func){
-	this.callback_queue.push(func);
-};
-fpsHandler.prototype.add_once_callback=function(func){
-	this.once_queue.push(func);
-};
-fpsHandler.prototype.remove_callback=function(func){
-	var did_delete=false;
-	for(var r=0;r<this.callback_queue.length;r++){
-		if(this.callback_queue[r]===func){
-			did_delete=true;
-			delete this.callback_queue[r];
-			break;
-		}
-	}
-	if(did_delete){this.callback_queue=utils.array_redex(this.callback_queue);}
-	return did_delete;
-};
-fpsHandler.prototype.change_fps=function(fpsIn){
-	this.stop_large_cycle();
-	this.fps=fpsIn;
-	this.start_large_cycle();
-};
-fpsHandler.prototype.stop_large_cycle=function(){
-	if(this.large_cycle_id!==false){clearInterval(this.large_cycle_id);}
-	if(this.request_animation_id!==false){cancelAnimationFrame(this.request_animation_id);}
-};
-fpsHandler.prototype.start_large_cycle=function(){
-	var self=this;
-	self.large_cycle_id=setInterval(function(){
-		try{
-			self.request_animation_id=requestAnimationFrame(function(){
-                if(self.request_animation_id!==false){cancelAnimationFrame(self.request_animation_id);}
-				self.request_animation_id=false;
-				if(self.once_queue.length>0){
-					for(var z=0;z<self.once_queue.length;z++){
-						if(typeof(self.once_queue[z])=='function'){
-							var tmp_func=self.once_queue[z].bind(self);
-							tmp_func.apply(self);}}
-					self.once_queue=[];}
-				if(self.callback_queue.length<=0){return;}
-				for(var z=0;z<self.callback_queue.length;z++){
-					if(typeof(self.callback_queue[z])=='function'){
-						var tmp_func=self.callback_queue[z].bind(self);
-						tmp_func.apply(self);}}
-			});
-		}catch(e){
-			try{
-				console.warn('Could not run request animation frame');
-			}catch(eConsole){
-			}
-		}
-	},(1000/self.fps));
-};
-*/

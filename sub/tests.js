@@ -64,17 +64,26 @@ module.exports = function(do_msg, do_err){
                         'options':{'cycle_type':'iterator','tasker_type':'pool','pool_size':3}
                     }
                 },
-                judge_func=function(){//passed as final success function
-                    //task_list.all.events - max against total
-                        //if all done
-                            // Wheatley (core0) - pool size is 1, fps is default
+                judge_func=function(taskKey,typeIn){//passed as final success function
+                    return function(){
+                        if(typeof(taskKey)!=='undefined' && utils.obj_valid_key(task_list,taskKey)){
+                            if(typeIn==='root'){
+                                task_list[taskKey].halt();//kill off the generators!
+                            }
+
+                            //task_list.all.events - max against total
+                                //if all done
+                                    // Wheatley (core0) - pool size is 1, fps is default
 
 
 
 //Wheatley Tests
 // change pool size
 // change fps
-                        doNext();
+                                doNext();
+
+                        }
+                    };
                 },
                 comp_func=function(keyNum,typeIn){//passed as final success function
                     return function(){
@@ -82,6 +91,7 @@ module.exports = function(do_msg, do_err){
                             task_list.all.info.events.push(merge(true,{},eventtaskschema,{'type':'setcompleted', 'ident':keyNum, 'stamp':new Date()}));
                             task_list['core'+keyNum].is_completed=true;
                             task_list['core'+keyNum].info.events.push(merge(true,{},eventtaskschema,{'type':'setcompleted', 'ident':keyNum, 'stamp':new Date()}));
+                            judge_func('core'+keyNum,'root');
                         }else if(typeIn==='inc'){// incremental
                             task_list.all.info.events.push(merge(true,{},eventtaskschema,{'type':'setcompleted', 'ident':keyNum, 'stamp':new Date()}));
                             task_list['core'+keyNum].info.events.push(merge(true,{},eventtaskschema,{'type':'taskcompleted', 'ident':keyNum, 'stamp':new Date()}));
@@ -100,19 +110,31 @@ module.exports = function(do_msg, do_err){
                                     try{pos();}
                                     catch(eInner){throw new Error("[C0RE TEST] Could not enqueue index: "+index+" - task: "+task+" - POS() \n"+eInner.toString());}
                                 };
-                            task_list[task].instance=new c0re(comp_func(index,'root'), task_list[task].options);
-                            for(var t=0;t<task_list.[task].info.max;t++){
-                                if(task=='xxxxx'){}
-                                else if(task=='xxxxx'){}
+                            task_list[task].instance=new c0re(comp_func(index,'root'), merge(true,{},task_list[task].options,{'silent':false}));
+                            for(var t=1;t<=task_list[task].info.max;t++){
+                                if(task=='core5' && (t===2)){
+                                    task_list[task].instance.enqueue(function(pkg,pos,neg){
+                                        task_list[task].instance.set_pool(task_list[task].target_poolsize);
+                                        enque_func(pkg,pos,neg);
+                                    }, judge_func(task,'inc'));}
+                                else if(task=='core6' && (t===2)){
+                                    task_list[task].instance.enqueue(function(pkg,pos,neg){
+                                        task_list[task].instance.set_pool(task_list[task].target_poolsize);
+                                        enque_func(pkg,pos,neg);
+                                    }, judge_func(task,'inc'));}
                                 else{
-                                    task_list[task].instance.enqueue(enque_func, judge_func);}
-
+                                    task_list[task].instance.enqueue(enque_func, judge_func(task,'inc'));}
                             }
                             //task_list.[task].info.max++;
                             task_list.all.info.max++;
-
                         })(inc,k);
                         inc++;
+                    }
+                }
+
+                for(var k in task_list){
+                    if(utils.obj_valid_key(task_list,k)){
+                        task_list[k].instance.execute();
                     }
                 }
             }catch(e){
