@@ -88,7 +88,7 @@ This is a placeholder.  I need to write an async tasker.  c0redP (Core-P aka Per
 
   `tasker_type` determines how the tasks are ran.
 
-  * `queue` forces the `options.pool_size` to always be one forcing tasks to be completed in sequence
+  * `queue` forces the `options.pool_size` to always be one forcing tasks to be completed in sequence (WIP - Shouldn't have to use pool of 1 but rather call the completed in order)
 
   * `pool` allows for a number to tasks to be active based on the `options.pool_size` variable
 
@@ -115,7 +115,7 @@ This is a placeholder.  I need to write an async tasker.  c0redP (Core-P aka Per
   `unique_prefix` passes through to `c0reModel` options
 
 
-### c0redP
+### c0redP (Pourtals)
 
 * `c0redP(` **options** *(object)* `)`: *returns* `c0redP instance`
 
@@ -131,19 +131,19 @@ This is a placeholder.  I need to write an async tasker.  c0redP (Core-P aka Per
 
 ### c0re
 
-[ ] init
+[ x ] init
 
   Suggested not required!
 
-[ ] ready
+[ x ] ready
 
   Suggested not required!
 
-[ ] start
+[ x ] start
 
   Required!
 
-[ ] exit
+[ x ] exit
 
   Suggested not required!
 

@@ -35,14 +35,20 @@ var do_terminate=function(reportTrace){
     },
     do_init=function(){//initalize
         //custom modules
-        var c0redPTests=require('./sub/tests')(),
-            c0reModel=require('./sub/c0reModel')(),
-            c0re=require('./sub/c0re')(),
+        var do_console_msg=true,
+            do_msg=function(input){
+                if(do_console_msg){
+                    console.log("\n\t========================\n",input,"\n\n\t========================\n");}
+            },
             do_console_err=true,
             do_err=function(input){
                 if(do_console_err){
                     console.error(input);}
-            },
+                //throw error!
+            };
+        var c0redPTests=require('./sub/tests')(do_msg,do_err),
+            c0reModel=require('./sub/c0reModel')(),
+            c0re=require('./sub/c0re')()
             testc0re={},
             test1={},
             test2={},
@@ -55,6 +61,11 @@ var do_terminate=function(reportTrace){
 
         var do_sets=[
             function(doNext){
+                do_msg("Running Constructor Tests:"+"\n"+
+                    "1)\t"+"c0reModel(doFunc)"+"\n"+
+                    "2)\t"+"c0reModel(doFunc,opts)"+"\n"+
+                    "3)\t"+"c0reModel(posFunc,negFunc,doFunc,opts)"+"\n"+
+                    "4)\t"+"c0reModel(posFunc,negFunc,doFunc,idleFunc,opts)");
                 /*
                 * !!!!!!!!!!!!!!!!!!!!!!!!!! TESTING THESE!!!!
                 * c0reModel(doFunc)
@@ -80,6 +91,7 @@ var do_terminate=function(reportTrace){
                 doNext();
             },
             function(doNext){
+                do_msg("Verifing Tests to ensure they have generated unique ids.");
                 testarr=[test1,test2,test3,test4,test5];
                 testuniqueids=[];
                 testuniqueids_reduced=[];
@@ -92,6 +104,7 @@ var do_terminate=function(reportTrace){
                 doNext();
             },
             function(doNext){
+                do_msg("Initalizing singe execute, enqueue to success tests.");
                 try{
                     testc0re=new c0re(function(){
                         console.log("[C0RE TEST] TEST CORE SUCCESS CALLBACK");
@@ -102,6 +115,20 @@ var do_terminate=function(reportTrace){
                 doNext();
             },
             function(doNext){
+                do_msg("Running enqueue test.");
+                try{
+                    testc0re.enqueue(function(pkg,pos,neg){
+                        try{pos();}
+                        catch(eInner){do_err("[C0RE TEST] Could not 'POS FUNC' for the 'enqueue test'.\n"+eInner.toString());}
+                    },
+                    function(){doNext();});
+                }catch(e){
+                    do_err("[C0RE TEST] Could not enqueue; setup for further execute, enqueue to success test is expected to fail.\n"+e.toString());
+                    doNext();
+                }
+            },
+            function(doNext){
+                do_msg("Running execute-async-enqueue test.");
                 try{
                     testc0re.enqueue(function(pkg,pos,neg){
                         var delaytime=2;
@@ -109,7 +136,7 @@ var do_terminate=function(reportTrace){
                         setTimeout(function(){
                             //console.log("============== "+delaytime+" SECONDS AFTER ==============");
                             try{pos();}
-                            catch(eInner){do_err("[C0RE TEST] Could not enqueue 'POS FUNC' single arg\n"+eInner.toString());}
+                            catch(eInner){do_err("[C0RE TEST] Could not 'POS FUNC' for the 'execute-async-enqueue test'.\n"+eInner.toString());}
                             doNext();
                         },delaytime * 1000);
                     });
@@ -120,18 +147,7 @@ var do_terminate=function(reportTrace){
                 testc0re.execute();
             },
             function(doNext){
-                try{
-                    testc0re.enqueue(function(pkg,pos,neg){
-                        try{pos();}
-                        catch(eInner){do_err("[C0RE TEST] Could not enqueue 'POS FUNC' TWO arg\n"+eInner.toString());}
-                    },
-                    function(){doNext();});
-                }catch(e){
-                    do_err("[C0RE TEST] Could not build 'TWO ARG'\n"+e.toString());
-                    doNext();
-                }
-            },
-            function(doNext){
+                do_msg("Running failure test; this should trigger an error that we will catch due to single bad argument.");
                 var did_fail=false;
                 try{
                     testc0re.enqueue(function(pkg,pos,neg){
@@ -140,11 +156,29 @@ var do_terminate=function(reportTrace){
                 }catch(e){
                     did_fail=true;
                 }
-                if(did_fail===false){do_err("[C0RE TEST] Building 'TWO ARG' succeed when it should have failed.\n"+e.toString());}
+                if(did_fail===false){do_err("[C0RE TEST] Enqueuing succeed when it should have failed.\n"+e.toString());}
                 doNext();
             },
             function(doNext){
-                c0redPTests.typical(doNext);
+                do_msg("Running typical usage tests; expecting a execution order sequence.");
+                try{
+                    c0redPTests.typical(doNext);
+                }catch(e){
+                    do_err("[C0RE TEST] Integrity tests failed.\n"+e.toString());
+                    doNext();
+                }
+            },
+            function(doNext){//'system check' - integrity check make sure the vars don't get crossed
+                do_msg("Running Integrity Tests - expecting:"+"\n"+
+                    "1)\t"+"an execution & completion order sequence"+"\n"+
+                    "2)\t"+"readonly & variable integrity"+"\n"+
+                    "3)\t"+"async variable getting/setting");
+                try{
+                    c0redPTests.integrity(doNext);
+                }catch(e){
+                    do_err("[C0RE TEST] Could not initalize test 'integrity'. Integrity tests failed.\n"+e.toString());
+                    doNext();
+                }
             }
         ];
         var binded_dos=[];
