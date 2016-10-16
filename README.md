@@ -60,11 +60,11 @@ This is a placeholder.  I need to write an async tasker.  c0redP (Core-P aka Per
 
   `pool_size` variable is readonly but can be changed with `set_pool()`.  It changes async (in its own task queue).  If `cycle_type` is '*queue*' then it cannot be changed.  Number must be greater than 1.
 
-* `fps_readonly`: *readonly* `boolean [true|false]` **default** `true`
+* `fixed_fps`: *readonly* `boolean [true|false]` **default** `true`
 
   **FPS Setting is Readonly**
 
-  `fps_readonly` determines if the `c0redP.fps` can be changed (below).
+  `fixed_fps` determines if the `c0redP.fps` can be changed (below).
 
 * `fps`: *special-readonly* `number [>1]` **default** `15`
 

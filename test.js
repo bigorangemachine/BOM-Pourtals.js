@@ -24,10 +24,8 @@ var do_terminate=function(reportTrace){
             if(reportTrace){console.trace();}
             console.log("\n\n\n================= do_terminate PID: "+process.pid+" =================","\n");
         }
-//console.log('===mysql_conn.end===',arguments);
         process.on('exit', function(code){
             if(!root_params.silent){
-                console.log('===PROCESS process.on(\'exit\') EVENT===');
                 console.log("\n================= \\\\do_terminate PID: "+process.pid+" =================","\n\n");
             }
         });
@@ -38,7 +36,7 @@ var do_terminate=function(reportTrace){
         var do_console_msg=true,
             do_msg=function(input){
                 if(do_console_msg){
-                    console.log("\n\t========================\n",input,"\n\n\t========================\n");}
+                    console.log("\n\t========================\n",input,"\n\t========================\n");}
             },
             do_console_err=true,
             do_err=function(input){
@@ -106,11 +104,8 @@ var do_terminate=function(reportTrace){
             function(doNext){
                 do_msg("Initalizing singe execute, enqueue to success tests.");
                 try{
-                    testc0re=new c0re(function(){
-                        console.log("[C0RE TEST] TEST CORE SUCCESS CALLBACK");
-                    });
+                    testc0re=new c0re(function(){do_msg("[C0RE TEST] TEST CORE SUCCESS CALLBACK");});
                 }catch(e){do_err("[C0RE TEST] Could not build 'NO ARG'\n"+e.toString());}
-
 
                 doNext();
             },
@@ -127,7 +122,7 @@ var do_terminate=function(reportTrace){
                 doNext();
             },
             function(doNext){
-                var delaytime=2;
+                var delaytime=0.755;
                 do_msg("Running execute-async-enqueue test: waiting "+delaytime+"s.");
                 try{
                     testc0re.enqueue(function(pkg,pos,neg){

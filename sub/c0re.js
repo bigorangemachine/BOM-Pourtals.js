@@ -36,8 +36,8 @@ module.exports = function(){//dependancies
 
         opts.fps=(typeof(opts.fps)==='number' && !isNaN(opts.fps)?Math.abs(Math.ceil(opts.fps)):15);
 
-        opts.fps_readonly=(typeof(opts.fps_readonly)==='boolean'?opts.fps_readonly:true);
-        opts.fps_readonly=(opts.cycle_type.toLowerCase()==='iterator'?true:opts.fps_readonly);
+        opts.fixed_fps=(typeof(opts.fixed_fps)==='boolean'?opts.fixed_fps:true);
+        opts.fixed_fps=(opts.cycle_type.toLowerCase()==='iterator'?true:opts.fixed_fps);
 
         //wrapped so I can use 'self' (this gets confusing in the below with all the hidden scopes)
         (function(){
@@ -107,20 +107,20 @@ var queue_use_RO=false;//this was testing getters/setters... should remove this
                         clean_num=(this.tasker_type!=='queue'?clean_num:1);
                         if(self.pool_size!==clean_num){//actually changed! - do an async value change
                             if(this.tasker_type==='queue' && clean_num>1){throw new Error("[c0re] Tasker type '"+this.tasker_type+"' cannot change pool size.");}
-                            enqueue_once.apply(self, [ function(){self._SCOPE_.async_opts.pool_size.val=clean_num;} ]);
+                            enqueue_once.apply(self, [ function(pkg,pos){self._SCOPE_.async_opts.pool_size.val=clean_num;pos();} ]);
                         }
                     }
                 },
                 'fps':{
                     'val':opts.fps,
                     'setter':function(v){
-                        if(!self.fps_readonly){
+                        if(!self.fixed_fps){
 throw new Error("This needs to be changed");process.exit();//does it?! - building tests check after that
                             var clean_num=v;
                             clean_num=Math.abs(Math.ceil( (typeof(clean_num)!=='number'?parseInt(clean_num):clean_num) ));
                             clean_num=(isNaN(clean_num) || clean_num===null || clean_num<=0?self.fps:clean_num);
                             if(self.fps!==clean_num){//actually changed! - do an async value change
-                                enqueue_once.apply(self, [ function(){self._SCOPE_.async_opts.fps.val=clean_num;} ]);
+                                enqueue_once.apply(self, [ function(pkg,pos){self._SCOPE_.async_opts.fps.val=clean_num;pos();} ]);
                             }
                         }
                     }
@@ -129,7 +129,7 @@ throw new Error("This needs to be changed");process.exit();//does it?! - buildin
             'readonly_opts':{
                 'temp_queue':[],'queue':[], //'temp_queue':self._SCOPE_.temp_queue,'queue':self._SCOPE_.queue, <- NOT USED!
                 'cycle_type':opts.cycle_type,'tasker_type':opts.tasker_type,
-                'fps_readonly':opts.fps_readonly,
+                'fixed_fps':opts.fixed_fps,
                 'determinative':(typeof(opts.determinative)==='string' && _.indexOf(determinative_whitelist, opts.determinative.toLowerCase())!==-1?opts.determinative.toLowerCase():determinative_whitelist[0]),
                 'unique_prefix':(typeof(opts.unique_prefix)==='string'?opts.unique_prefix:false)
             }
@@ -140,7 +140,7 @@ throw new Error("This needs to be changed");process.exit();//does it?! - buildin
             'val':opts.fps,
             'fpsgetter':function(){return self._SCOPE_.fps.val;},
             'fpssetter':function(v){
-                if(!self.fps_readonly){
+                if(!self.fixed_fps){
 throw new Error("This needs to be changed");process.exit();
                     var clean_num=v;
                     clean_num=Math.abs(Math.ceil( (typeof(clean_num)!=='number'?parseInt(clean_num):clean_num) ));
@@ -238,7 +238,7 @@ throw new Error("This needs to be changed");process.exit();
             //readonly!
             this.__defineGetter__('silent', function(){return silent_obj._val;});
             this.__defineGetter__('pool_size', function(){return async_getter('pool_size').apply(self);});
-            this.__defineGetter__('fps_readonly', readonly_getter('fps_readonly'));
+            this.__defineGetter__('fixed_fps', readonly_getter('fixed_fps'));
             if(queue_use_RO){
                 this.__defineGetter__('temp_queue', readonly_getter('temp_queue'));
                 this.__defineGetter__('queue', readonly_getter('queue'));
@@ -271,7 +271,7 @@ throw new Error("This needs to be changed");process.exit();
             //readonly!
             Object.defineProperty(this, 'silent', {'get': function(){return silent_obj._val;}});
             Object.defineProperty(this, 'pool_size', {'get': function(){return async_getter('pool_size').apply(self);}});
-            Object.defineProperty(this, 'fps_readonly', {'get': readonly_getter('fps_readonly')});
+            Object.defineProperty(this, 'fixed_fps', {'get': readonly_getter('fixed_fps')});
 
             if(queue_use_RO){
                 Object.defineProperty(this, 'temp_queue', {'get': readonly_getter('temp_queue')});
@@ -345,7 +345,7 @@ throw new Error("This needs to be changed");process.exit();
         c0re.prototype.set_pool=function(numIn){//experimental - change the pool size later!
             var self=this;
             if(!self.silent){console.warn("[c0re] pool size changes in an ansyc method");}
-            throw new Error("[c0re] enqueue_pool_change not tested");
+//throw new Error("[c0re] enqueue_pool_change not tested");
             self._SCOPE_.async_opts.pool_size.setter(numIn);
         };
         c0re.prototype.enqueue_next=function(funcIn,callbacks,optsIn){//everyone else takes the bus when it comes to 'next'
