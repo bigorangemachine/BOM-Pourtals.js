@@ -67,6 +67,7 @@ module.exports=function(){//dependancies
                 'idle':undefined
             }
         };
+        
         //private variables - need to be objects
         var is_executable=function(){return (this.status==='ready'?true:false);},
             is_next=function(){return (this.status==='next'?true:false);},

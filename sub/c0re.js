@@ -18,7 +18,8 @@ module.exports = function(){//dependancies
         utils=require('bom-utils'),merge=require('merge'),_=require('underscore');
 
 
-    var determinative_whitelist=['all', '~all', 'pos'],
+    var valid_statuses=['uninit','running','finished','stopped'],
+        determinative_whitelist=['all', '~all', 'pos'],
         valid_cycles=['iterator','generator'], //iterator completes the tasts once (auto stoppage) - generator does things again (manual stoppage)
         valid_taskers=['queue','pool','fuzzy'];
 
@@ -26,24 +27,27 @@ module.exports = function(){//dependancies
 
         };
     function c0re(successFunc, failFunc, opts){
-        if(!opts){opts={};}
+        if(typeof(arguments[arguments.length-1])==='object' && (arguments[arguments.length-1] instanceof Object)){opts=arguments[arguments.length-1];}
+        else if(!opts && typeof(arguments[arguments.length-1])!=='object'){opts={};}
 //console.log('[c0re] CONSTRUCTOR  opts',opts);
         opts=merge(true,{},opts);//break PBR
+
         opts.cycle_type=(typeof(opts.cycle_type)==='string'?opts.cycle_type.toLowerCase():valid_cycles[0]);
         opts.tasker_type=(typeof(opts.tasker_type)==='string'?opts.tasker_type.toLowerCase():valid_taskers[0]);
         opts.cycle_type=(_.indexOf(valid_cycles, opts.cycle_type)!==-1?opts.cycle_type:valid_cycles[0]);//verified found!
         opts.tasker_type=(_.indexOf(valid_taskers, opts.tasker_type)!==-1?opts.tasker_type:valid_taskers[0]);
 
         opts.fps=(typeof(opts.fps)==='number' && !isNaN(opts.fps)?Math.abs(Math.ceil(opts.fps)):15);
-
         opts.fixed_fps=(typeof(opts.fixed_fps)==='boolean'?opts.fixed_fps:true);
-        opts.fixed_fps=(opts.cycle_type.toLowerCase()==='iterator'?true:opts.fixed_fps);
+
+        opts.pool_size=(typeof(opts.pool_size)==='number' && opts.pool_size>0?Math.ceil(opts.pool_size):1);
+        opts.pool_size=(opts.cycle_type==='queue'?1:opts.pool_size);
+        opts.fixed_pool=(typeof(opts.fixed_pool)==='boolean'?opts.fixed_pool:false);
+        opts.fixed_pool=(opts.tasker_type==='queue'?true:opts.fixed_pool);//this is WIP lock - iterators will eventually trigger pos()/neg() in sequence
 
         //wrapped so I can use 'self' (this gets confusing in the below with all the hidden scopes)
         (function(){
-        var self=this,info_obj={},fps={},silent_obj={},small_cycle_obj={},large_cycle_obj={},pool_size={},readonly_opts={};
-var queue_use_RO=false;//this was testing getters/setters... should remove this
-//queue_use_RO=true;
+        var self=this,info_obj={},silent_obj={},small_cycle_obj={},large_cycle_obj={},pool_size={},readonly_opts={};
 
         self._SCOPE_={
             'end_callbacks':{'success':successFunc, 'fail':failFunc},
@@ -99,15 +103,21 @@ var queue_use_RO=false;//this was testing getters/setters... should remove this
             },
             'async_opts':{
                 'pool_size':{
-                    'val':(typeof(opts.pool_size)!=='undefined'?opts.pool_size:1),
+                    'val':opts.pool_size,
                     'setter':function(numIn){
                         var clean_num=numIn;
                         clean_num=Math.abs(Math.ceil( (typeof(clean_num)!=='number'?parseInt(clean_num):clean_num) ));
                         clean_num=(isNaN(clean_num) || clean_num===null || clean_num<=0?1:clean_num);
                         clean_num=(this.tasker_type!=='queue'?clean_num:1);
                         if(self.pool_size!==clean_num){//actually changed! - do an async value change
+                            if(self.fixed_pool){
+                                if(!self.silent){console.warn("[c0re] Could not change pool size due to configuration option 'fixed_pool' set to 'true'.");}
+                                return;
+                            }
                             if(this.tasker_type==='queue' && clean_num>1){throw new Error("[c0re] Tasker type '"+this.tasker_type+"' cannot change pool size.");}
-                            enqueue_once.apply(self, [ function(pkg,pos){self._SCOPE_.async_opts.pool_size.val=clean_num;pos();} ]);
+                            if(self.status==='running'){enqueue_once.apply(self, [ function(pkg,pos){self._SCOPE_.async_opts.pool_size.val=clean_num;pos();} ]);}
+                            else{self._SCOPE_.async_opts.pool_size.val=clean_num;}
+
                         }
                     }
                 },
@@ -115,46 +125,34 @@ var queue_use_RO=false;//this was testing getters/setters... should remove this
                     'val':opts.fps,
                     'setter':function(v){
                         if(!self.fixed_fps){
-throw new Error("This needs to be changed");process.exit();//does it?! - building tests check after that
+//throw new Error("This needs to be changed");process.exit();//does it?! - building tests check after that
                             var clean_num=v;
                             clean_num=Math.abs(Math.ceil( (typeof(clean_num)!=='number'?parseInt(clean_num):clean_num) ));
                             clean_num=(isNaN(clean_num) || clean_num===null || clean_num<=0?self.fps:clean_num);
                             if(self.fps!==clean_num){//actually changed! - do an async value change
-                                enqueue_once.apply(self, [ function(pkg,pos){self._SCOPE_.async_opts.fps.val=clean_num;pos();} ]);
+                                if(self.fixed_fps){
+                                    if(!self.silent){console.warn("[c0re] Could not change fps due to configuration option 'fixed_fps' set to 'true'.");}
+                                    return;
+                                }
+                                if(self.status==='running'){enqueue_once.apply(self, [ function(pkg,pos){self._SCOPE_.async_opts.fps.val=clean_num;pos();} ]);}
+                                else{self._SCOPE_.async_opts.fps.val=clean_num;}
+
                             }
                         }
                     }
                 }
             },
             'readonly_opts':{
-                'temp_queue':[],'queue':[], //'temp_queue':self._SCOPE_.temp_queue,'queue':self._SCOPE_.queue, <- NOT USED!
+                //'temp_queue':[],'queue':[], //'temp_queue':self._SCOPE_.temp_queue,'queue':self._SCOPE_.queue, <- NOT USED!
                 'cycle_type':opts.cycle_type,'tasker_type':opts.tasker_type,
-                'fixed_fps':opts.fixed_fps,
+                'fixed_fps':opts.fixed_fps,'fixed_pool':opts.fixed_pool,
+                'status':valid_statuses[0],// 'uninit'
                 'determinative':(typeof(opts.determinative)==='string' && _.indexOf(determinative_whitelist, opts.determinative.toLowerCase())!==-1?opts.determinative.toLowerCase():determinative_whitelist[0]),
                 'unique_prefix':(typeof(opts.unique_prefix)==='string'?opts.unique_prefix:false)
             }
         };
 
         var async_getter=function(keyIn){return function(){return self._SCOPE_.async_opts[keyIn].val;};};
-        fps={//should be obsolete
-            'val':opts.fps,
-            'fpsgetter':function(){return self._SCOPE_.fps.val;},
-            'fpssetter':function(v){
-                if(!self.fixed_fps){
-throw new Error("This needs to be changed");process.exit();
-                    var clean_num=v;
-                    clean_num=Math.abs(Math.ceil( (typeof(clean_num)!=='number'?parseInt(clean_num):clean_num) ));
-                    clean_num=(isNaN(clean_num) || clean_num===null || clean_num<=0?self.fps.val:clean_num);
-                    if(self._SCOPE_.fps.val!==clean_num){//actually changed! - do an async value change
-                        self.large_cycle.cancel_func();
-                        self._SCOPE_.fps.val=clean_num;//this sets the new value! self.fps=clean_num;
-                        self.small_cycle.init_func(function(){//take the small cycle callback and trigger the large one later ;)
-                            self.large_cycle.init_func();//pickup the new fps value because its async ;)
-                        });
-                    }
-                }
-            }
-        };
         silent_obj={'_val':(typeof(opts.silent)==='boolean'?opts.silent:false)};
         small_cycle_obj={
             'del_history':false,
@@ -237,12 +235,10 @@ throw new Error("This needs to be changed");process.exit();
         if((typeof(Object.defineProperty)!=='function' && (typeof(this.__defineGetter__)==='function' || typeof(this.__defineSetter__)==='function'))){//use pre IE9
             //readonly!
             this.__defineGetter__('silent', function(){return silent_obj._val;});
-            this.__defineGetter__('pool_size', function(){return async_getter('pool_size').apply(self);});
             this.__defineGetter__('fixed_fps', readonly_getter('fixed_fps'));
-            if(queue_use_RO){
-                this.__defineGetter__('temp_queue', readonly_getter('temp_queue'));
-                this.__defineGetter__('queue', readonly_getter('queue'));
-            }
+            this.__defineGetter__('fixed_pool', readonly_getter('fixed_pool'));
+            this.__defineGetter__('status', readonly_getter('status'));
+
             this.__defineGetter__('determinative', readonly_getter('determinative'));
             this.__defineGetter__('cycle_type', readonly_getter('cycle_type'));
             this.__defineGetter__('tasker_type', readonly_getter('tasker_type'));
@@ -251,14 +247,14 @@ throw new Error("This needs to be changed");process.exit();
 
             //getters & setters!
             this.__defineGetter__('fps', function(){return async_getter('fps').apply(self);});
-            this.__defineSetter__('fps', function(v){self._SCOPE_.async_opts['fps'].setter(v);});
+            this.__defineSetter__('fps', self.set_fps);
+            this.__defineGetter__('pool_size', function(){return async_getter('pool_size').apply(self);});
+            this.__defineSetter__('pool_size', self.set_pool);
 
-            if(!queue_use_RO){
-                this.__defineGetter__('queue', scope_get());
-                this.__defineSetter__('queue',  scope_set());
-                this.__defineGetter__('temp_queue', scope_get('temp'));
-                this.__defineSetter__('temp_queue', scope_set('temp'));
-            }
+            this.__defineGetter__('queue', scope_get());
+            this.__defineSetter__('queue',  scope_set());
+            this.__defineGetter__('temp_queue', scope_get('temp'));
+            this.__defineSetter__('temp_queue', scope_set('temp'));
 
             //custom
             this.__defineGetter__('large_cycle', function(){return large_cycle_obj;});
@@ -270,13 +266,10 @@ throw new Error("This needs to be changed");process.exit();
         }else{
             //readonly!
             Object.defineProperty(this, 'silent', {'get': function(){return silent_obj._val;}});
-            Object.defineProperty(this, 'pool_size', {'get': function(){return async_getter('pool_size').apply(self);}});
             Object.defineProperty(this, 'fixed_fps', {'get': readonly_getter('fixed_fps')});
+            Object.defineProperty(this, 'fixed_pool', {'get': readonly_getter('fixed_pool')});
+            Object.defineProperty(this, 'status', {'get': readonly_getter('status')});
 
-            if(queue_use_RO){
-                Object.defineProperty(this, 'temp_queue', {'get': readonly_getter('temp_queue')});
-                Object.defineProperty(this, 'queue', {'get': readonly_getter('queue')});
-            }
             Object.defineProperty(this, 'determinative', {'get': readonly_getter('determinative')});
             Object.defineProperty(this, 'cycle_type', {'get': readonly_getter('cycle_type')});
             Object.defineProperty(this, 'tasker_type', {'get': readonly_getter('tasker_type')});
@@ -284,11 +277,11 @@ throw new Error("This needs to be changed");process.exit();
             Object.defineProperty(this, 'list', {'get': function(){return self._SCOPE_.info_obj.idlist;}});
 
             //getters & setters!
-            Object.defineProperty(this, 'fps', {'get': function(){return async_getter('fps').apply(self);}, 'set':function(v){self._SCOPE_.async_opts['fps'].setter(v);} });
-            if(!queue_use_RO){
-                Object.defineProperty(this, 'queue', {'get': scope_get(), 'set': scope_set()});
-                Object.defineProperty(this, 'temp_queue', {'get': scope_get('temp'), 'set': scope_set('temp')});
-            }
+            Object.defineProperty(this, 'fps', {'get': function(){return async_getter('fps').apply(self);}, 'set':self.set_fps });
+            Object.defineProperty(this, 'pool_size', {'get': function(){return async_getter('pool_size').apply(self);},'set':self.set_pool});
+
+            Object.defineProperty(this, 'queue', {'get': scope_get(), 'set': scope_set()});
+            Object.defineProperty(this, 'temp_queue', {'get': scope_get('temp'), 'set': scope_set('temp')});
 
             //custom
             Object.defineProperty(this, 'large_cycle', {'get': function(){return large_cycle_obj;}});
@@ -302,27 +295,18 @@ throw new Error("This needs to be changed");process.exit();
             },
             enqueue_once=function(func){//super next :D
                 var self=this;
-                if(queue_use_RO){
-//console.log("[c0re enqueue_once] USE READ ONLY MODE!");
-                    self._SCOPE_.readonly_opts.temp_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
-                }else{
-                    self._SCOPE_.temp_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
-                    // self.temp_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
-                }
+
+                self._SCOPE_.temp_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
+                // self.temp_queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
+
                 self.rebuild_info();
             },
             enqueue=function(func){
                 var self=this;
-                if(queue_use_RO){
-//console.log("[c0re enqueue] USE READ ONLY MODE!");
-                    self._SCOPE_.readonly_opts.queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
-//console.log("[CORE ENQUEUE PRIVATE] - "+self.unique_prefix,"\self._SCOPE_.readonly_opts.queue.length ",self._SCOPE_.readonly_opts.queue.length);
-                }else{
-                    self._SCOPE_.queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
-                    // self.queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
-//console.log("[CORE ENQUEUE PRIVATE] - "+self.unique_prefix,"\nself.queue.length ",self.queue.length);
 
-                }
+                self._SCOPE_.queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
+                // self.queue.push( (func instanceof c0reModel?func:new c0reModel(function(){},function(){},func,{'unique_prefix':self.unique_prefix,'exclude_ids':self.list.all}))  );
+//console.log("[CORE ENQUEUE PRIVATE] - "+self.unique_prefix,"\nself.queue.length ",self.queue.length);
                 self.rebuild_info();
             };
 
@@ -342,14 +326,9 @@ throw new Error("This needs to be changed");process.exit();
 
 
         //these need private scope access!
-        c0re.prototype.set_pool=function(numIn){//experimental - change the pool size later!
-            var self=this;
-            if(!self.silent){console.warn("[c0re] pool size changes in an ansyc method");}
-//throw new Error("[c0re] enqueue_pool_change not tested");
-            self._SCOPE_.async_opts.pool_size.setter(numIn);
-        };
         c0re.prototype.enqueue_next=function(funcIn,callbacks,optsIn){//everyone else takes the bus when it comes to 'next'
             var self=this;
+            if(!self.silent){console.error("[c0re] Should increment the priority based off the highest value.");}
             return self.enqueue(funcIn,callbacks,merge(true,optsIn,{'priority':Number.MAX_SAFE_INTEGER}));
         };
         c0re.prototype.enqueue=function(funcIn,callbacks,optsIn){
@@ -424,6 +403,7 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
             self.hook_ins.icallback('task_result',{},function(nArgs){
                 // events=nArgs.events;//debugVar=nArgs.debug;
             });
+
             if(is_success){self._SCOPE_.end_callbacks.success.apply(self);}
             else{self._SCOPE_.end_callbacks.fail.apply(self);}
         };
@@ -445,6 +425,8 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
                 large_loop_func=function(){
 //console.log('[c0re execute]  ');//'[c0re execute] self._SCOPE_.info_obj',self._SCOPE_.info_obj
                     self.small_cycle.cancel_func();//keep recursion clean
+                    self._SCOPE_.readonly_opts.status='running';
+
                     var actual_pool=self._SCOPE_.info_obj.free_size(),
                         task_queue=[],
                         doing_queue=[],
@@ -473,10 +455,23 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
                         if(task_queue.length>0){task_queue.forEach(function(task,i,arr){task.mark_next();});}
                         self.rebuild_info();
                     }
-                    if(self._SCOPE_.info_obj.idlist.complete.length>=self.temp_queue.concat(self.queue).length){
+                    if(self._SCOPE_.info_obj.idlist.complete.length>=self.temp_queue.concat(self.queue).length){//this might caught recursion
 //console.log("[c0re] DOING HALT!");
-                        self.small_cycle.init_func(self.halt.bind(self));
-                        //self.do_next();
+                        self.halt();
+                        self._SCOPE_.readonly_opts.status='finished';
+                        self.task_result();//final success/fail function call - self.status set to 'stopped'
+
+                        if(self.cycle_type==='iterator'){//only iterators stop
+                            self._SCOPE_.readonly_opts.status='stopped';
+                        }else{
+                            self.reset();
+                            self.small_cycle.init_func(function(){
+                                self.small_cycle.cancel_func();//keep threads clean
+                                if(self.status!=='stopped'){
+                                    self.execute();//recursion!!!!
+                                }
+                            });
+                        }
                     }else{
 //console.log("[c0re] DOING NEXT!");
                         self.small_cycle.init_func(self.do_next.bind(self));
@@ -488,6 +483,7 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
                 };
 //console.log("[c0re] TEST: (false or num?) self.large_cycle.id: ",self.large_cycle.id);
             if(self.large_cycle.id!==false){throw new Error("[c0re] Could not execute. Large Thread is busy");return false;}
+            else if(self.status==='running'){throw new Error("[c0re] Could not execute; status is '"+self.status+"'.");return false;}
 
 //console.log("[c0re] self.large_cycle.init_func()\n","self.queue: ",self.queue);
             self.large_cycle.init_func(large_loop_func);
@@ -497,8 +493,7 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
 //console.log("\n"+"[c0re] ========= halt =========",self.constructor.name);
             self.large_cycle.cancel_func();//all stop!
             self.small_cycle.cancel_func();
-            if(self._SCOPE_.info_obj.idlist.complete.length>=self.temp_queue.concat(self.queue).length){//safe ending
-                self.task_result();}
+            self._SCOPE_.readonly_opts.status='stopped';
         };
         c0re.prototype.do_next=function(){
             var self=this,
@@ -589,8 +584,25 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
         };
 
         }).apply(this);
-
     }
+    c0re.prototype.reset=function(){
+        var self=this;
+        self._SCOPE_.temp_queue=[];
+        self._SCOPE_.queue.forEach(function(v,i,arr){
+            self._SCOPE_.queue[i].reset();
+        });
+        self.rebuild_info();
+    };
+    c0re.prototype.set_pool=function(numIn){//change the pool size later!
+        var self=this;
+        if(!self.silent){console.warn("[c0re] pool size changes in an ansyc method");}
+        self._SCOPE_.async_opts.pool_size.setter(numIn);
+    };
+    c0re.prototype.set_fps=function(numIn){//change the fps later!
+        var self=this;
+        if(!self.silent){console.warn("[c0re] fps changes in an ansyc method");}
+        self._SCOPE_.async_opts.fps.setter(numIn);
+    };
     c0re.prototype.rebuild_info=function(){
         var self=this;
         self._SCOPE_.info_obj.rebuild.apply(self);
