@@ -214,14 +214,41 @@ console.log("analysis_data.tasks.all.start: ",analysis_data.tasks.all.start);
                                     completed_tasks=[],
                                     started_tasks=[];
                                 task_list[taskIn].info.events.forEach(function(v,i,arr){
-                                    if(v.type==='taskcompleted'){date_order.push(v.stamp.getTime());}
-                                    else if(v.type==='setcompleted'){completed_tasks.push(v);}
-                                    else if(v.type==='taskstarted'){date_started_order.push(v.stamp.getTime());}
+                                    if(v.type==='taskcompleted'){
+                                        date_order.push(v.stamp.getTime());
+                                    }else if(v.type==='taskstarted'){
+                                        date_started_order.push(v.stamp.getTime());
+                                    }else if(v.type==='setcompleted'){
+                                        completed_tasks.push(v);
+                                    }
                                 });
 
                                 if(completed_tasks.length!==1){//this is redundant due to high level
                                     throw new Error("[C0RE TEST] Running test '"+taskIn+"' completion count. \n"+
                                         "This task has more than 1 completed calls; got "+completed_tasks.length+" completed calls.");
+                                }
+
+                                var fail_tolerance=0.15;// 15% failure tolerance
+                                //var fail_tolerance=0.02;// 2% failure tolerance
+
+
+                                if(taskIn!=='all'){
+// var date_diffs=[];
+// for(var a=0;a<date_order.length;a++){date_diffs.push(date_order[a]-date_started_order[a]);}
+// console.log("date_order: ",date_order,"\ndate_started_order: ",date_started_order,"\ndate_diffs: ",date_diffs);
+                                    //var date_order_sorted=(date_order.concat([])).sort();//bracketed to guarntee order of operations
+                                    for(var d=0;d<date_order.length;d++){
+                                        // date ended (largest date as number) - date started (smallest date as number) / timeout_delay
+                                        var percent_diff=Math.abs( (date_order[ d ] - date_started_order[d] - timed_delay )/timed_delay );//its expected to take longer... or shorter... just reduce the difference
+
+                                        if(percent_diff>fail_tolerance){
+                                            throw new Error("[C0RE TEST] Running test '"+taskIn+"["+d+"]' completion order. \n"+
+                                                "This task completed difference percent '"+(percent_diff*100)+"%'; "+
+                                                "raw difference is '"+(date_order[ d ] - date_started_order[d])+"' "+
+                                                "which is outside tollerance '"+(fail_tolerance*100)+"%'.");
+                                        }
+
+                                    }
                                 }
 
                                 //strict date order completion check
@@ -238,28 +265,34 @@ console.log("analysis_data.tasks.all.start: ",analysis_data.tasks.all.start);
                                     }
                                 }
                                 if(task_list[taskIn].instance.tasker_type==='pool'){
-                                }
-                                if(taskIn!=='all'){
-// var date_diffs=[];
-// for(var a=0;a<date_order.length;a++){date_diffs.push(date_order[a]-date_started_order[a]);}
-// console.log("date_order: ",date_order,"\ndate_started_order: ",date_started_order,"\ndate_diffs: ",date_diffs);
-                                    //var date_order_sorted=(date_order.concat([])).sort();//bracketed to guarntee order of operations
-                                    for(var d=0;d<date_order.length;d++){
-                                        // date ended (largest date as number) - date started (smallest date as number) / timeout_delay
-                                        var percent_diff=(date_order[ d ] - date_started_order[d] )/timed_delay,
-                                            fail_tolerance=0.15;// 15% failure tolerance
-                                        //fail_tolerance=0.02;// 2% failure tolerance
-                                        percent_diff=Math.abs(1-percent_diff);//its expected to take longer... or sorter... just reduce the difference
+                                    var inc=0,// index of tasks started
+                                        pool_change_inc=3,// which increment did the pool change happen
+                                        pool_size_opt=default_poolsize;// what is the current pool value
+                                    if(taskIn==='core4'){pool_change_inc=2;}
+                                    else if(taskIn==='core5'){pool_change_inc=4;}
 
-                                        if(percent_diff>fail_tolerance){
-                                            throw new Error("[C0RE TEST] Running test '"+taskIn+"["+d+"]' completion order. \n"+
-                                                "This task completed difference percent '"+(percent_diff*100)+"%'; "+
-                                                "raw difference is '"+(date_order[ d ] - date_started_order[d])+"' "+
-                                                "which is outside tollerance '"+(fail_tolerance*100)+"%'.");
+                                    for(var d=0;d<task_list[taskIn].info.events.length;d++){
+                                        // task_list[taskIn].info.events[d].xxxxxx;;
+                                        if(task_list[taskIn].info.events[d].type==='taskstarted'){
+console.log("["+taskIn+"] \t",d,"\tinc",inc,"\t"+task_list[taskIn].info.events[d].type);
+                                            if(inc==pool_change_inc){
+                                                console.log("["+taskIn+"] LOG CHANGE @"+pool_change_inc+" "+
+                                                            "TO ",task_list[taskIn].target_poolsize);
+                                                pool_size_opt=task_list[taskIn].target_poolsize;
+                                                date_started_order.forEach(function(v,i,arr){
+                                                    if(i!==0){
+                                                        var percent_diff=Math.abs( (v - arr[ (i-1) ] - timed_delay )/timed_delay );
+if(i===inc){console.log("=========== THIS ===========");}
+                                                        console.log(i+"\tpercent_diff: ",percent_diff);
+                                                    }
+                                                });
+                                            }
+                                            inc++;
                                         }
-
                                     }
+                                    // target_poolsize
                                 }
+
                                 //function validate_settings(){}
                                 var has_unchanged_fps=function(taskKey){return (task_list[taskKey].instance.fps===default_fps?true:false);},
                                     has_unchanged_poolsize=function(taskKey){return (task_list[taskKey].instance.pool_size===default_poolsize?true:false);},
@@ -268,12 +301,13 @@ console.log("analysis_data.tasks.all.start: ",analysis_data.tasks.all.start);
 console.log(
 "instance.fps: ",task_list[taskIn].instance.fps,"\n"+
 "instance.pool_size: ",task_list[taskIn].instance.pool_size,"\n"+
+"=============\n"+
 "target_fps: ",task_list[taskIn].target_fps,"\n"+
 "target_poolsize: ",task_list[taskIn].target_poolsize,"\n"+
 "=============\n"+
 "default_fps: ",default_fps,"\n"+
 "default_poolsize: ",default_poolsize,"\n"+
-
+"=============\n"+
 "base_change_fps: ",base_change_fps,"\n"+
 "base_change_poolsize: ",base_change_poolsize,"\n\n");
                                 if(taskIn==='core0' || taskIn==='core1' || taskIn==='core2' || taskIn==='core3'){//fps cannot change
@@ -298,7 +332,7 @@ console.log(
                                             "Fixed Pool size: "+(task_list[taskIn].instance.fixed_pool?'fixed':'non-fixed')+".");
                                     }
                                 }
-                                if(taskIn==='core3'){
+                                if(taskIn==='core4'){
                                     throw new Error("WIP!");
                                 }
 
@@ -321,9 +355,9 @@ console.log(
                         };
 //events_compare('core0', 'list');process.exit();
 //events_compare('core1', 'list');process.exit();
-events_compare('core0', 'list');events_compare('core1', 'list');events_compare('core2', 'list');
+//events_compare('core0', 'list');events_compare('core1', 'list');events_compare('core2', 'list');events_compare('core3', 'list');
 //events_compare('core2', 'list');process.exit();
-events_compare('core3', 'list');process.exit();
+events_compare('core4', 'list');process.exit();
                     for(var c0re_set in task_list){
                         if(!utils.obj_valid_key(task_list,c0re_set)){continue;}
 
@@ -343,14 +377,7 @@ process.exit();
                         if(!utils.obj_valid_key(task_list,c0re_set)){continue;}
                         events_compare(c0re_set, 'list');
                     }
-//if all done
-// Wheatley (core0) - pool size is 1, fps is default
 
-
-
-//Wheatley Tests
-// change pool size
-// change fps
                     doNext();
                 },
                 test_task_history_func=function(keyNum,typeIn){//passed as final c0re success function
