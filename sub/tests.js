@@ -12,6 +12,9 @@ module.exports = function(do_msg, do_err){
                 base_change_poolsize=2,
                 taskschema={'events':[],'max':1,'inc':0,'started_inc':0,'completed':false},
                 eventtaskschema={'didcatch':false,'type':false,'ident':false,'stamp':false},
+                // review fixed_poolsize and fixed_fps settings.  originally there was confusion on fps vs poolsize.
+                // FPS isn't changed in the activation loop so setting 'fixed_fps' in options is wrong(?)
+                // Just review the code for 100% coverage
                 task_list={
                     'all':{
                         'name': 'All history',
@@ -27,7 +30,7 @@ module.exports = function(do_msg, do_err){
                         'target_poolsize':base_change_poolsize,
                         'instance':false,
                         'is_completed':false,
-                        'options':{'cycle_type':'iterator','tasker_type':'queue','fixed_fps':false}// Wheatley (iterator-queue) -> can't change pool size
+                        'options':{'cycle_type':'iterator','tasker_type':'queue','fixed_fps':true}// Wheatley (iterator-queue) -> can't change pool size
                     },
                     'core1':{
                         'name': 'Paranoia  (iterator-pool)',
@@ -36,7 +39,7 @@ module.exports = function(do_msg, do_err){
                         'target_poolsize':base_change_poolsize,
                         'instance':false,
                         'is_completed':false,
-                        'options':{'cycle_type':'iterator','tasker_type':'pool','fixed_fps':false}// Paranoia  (iterator-pool)
+                        'options':{'cycle_type':'iterator','tasker_type':'pool','fixed_fps':true}// Paranoia  (iterator-pool)
                     },
                     'core2':{
                         'name': 'Cake (generator-queue)',
@@ -45,7 +48,7 @@ module.exports = function(do_msg, do_err){
                         'target_poolsize':base_change_poolsize,
                         'instance':false,
                         'is_completed':false,
-                        'options':{'cycle_type':'generator','tasker_type':'queue','fixed_fps':false}// Cake (generator-queue) -> can't change pool size
+                        'options':{'cycle_type':'generator','tasker_type':'queue','fixed_fps':true}// Cake (generator-queue) -> can't change pool size
                     },
                     'core3':{
                         'name': 'Anger (generator-pool)',
@@ -222,20 +225,21 @@ console.log("analysis_data.tasks.all.start: ",analysis_data.tasks.all.start);
                                 }
 
                                 //strict date order completion check
-                                if(taskIn==='core0' || taskIn==='core2'){//all tests should complete in a strict order - Wheatley (iterator-queue) & Cake (generator-queue)
+                                if(task_list[taskIn].instance.tasker_type==='queue'){
+                                // if(taskIn==='core0' || taskIn==='core2'){//all tests should complete in a strict order - Wheatley (iterator-queue) & Cake (generator-queue)
                                     var date_order_sorted=(date_order.concat([])).sort();//bracketed to guarntee order of operations
                                     for(var d=0;d<date_order_sorted.length;d++){
-
-
-console.log(d+"\t"+taskIn+', '+typeIn);
-                                        if(task_list[taskIn].info.events[d].stamp.getTime()!==date_order_sorted[d]){
-                                            throw new Error("[C0RE TEST] Running test '"+taskIn+"' completion order. \n"+
-                                                "This task completed at '"+task_list[taskIn].info.events[d].stamp.getTime()+"' "+
+                                        if(date_order[d]!==date_order_sorted[d]){
+                                            throw new Error("[C0RE TEST] Running test '"+taskIn+"' "+
+                                                "(tasker type '"+task_list[taskIn].instance.tasker_type+"') completion order. \n"+
+                                                "This task completed at '"+date_order+"' "+
                                                 "but the matching index completed at '"+date_order_sorted[d]+"'.");
                                         }
                                     }
                                 }
-                                if(taskIn==='core1'){
+                                if(task_list[taskIn].instance.tasker_type==='pool'){
+                                }
+                                if(taskIn!=='all'){
 // var date_diffs=[];
 // for(var a=0;a<date_order.length;a++){date_diffs.push(date_order[a]-date_started_order[a]);}
 // console.log("date_order: ",date_order,"\ndate_started_order: ",date_started_order,"\ndate_diffs: ",date_diffs);
@@ -256,10 +260,11 @@ console.log(d+"\t"+taskIn+', '+typeIn);
 
                                     }
                                 }
-                                has_unchanged_fps=function(taskKey){return (task_list[taskKey].instance.fps===default_fps?true:false);},
-                                has_unchanged_poolsize=function(taskKey){return (task_list[taskKey].instance.pool_size===default_poolsize?true:false);},
-                                has_changed_fps=function(taskKey,fpsIn){return (task_list[taskKey].instance.pool_size===fpsIn?true:false);},
-                                has_changed_poolsize=function(taskKey,poolSizeIn){return (task_list[taskKey].instance.pool_size===poolSizeIn?true:false);},
+                                //function validate_settings(){}
+                                var has_unchanged_fps=function(taskKey){return (task_list[taskKey].instance.fps===default_fps?true:false);},
+                                    has_unchanged_poolsize=function(taskKey){return (task_list[taskKey].instance.pool_size===default_poolsize?true:false);},
+                                    has_changed_fps=function(taskKey,fpsIn){return (task_list[taskKey].instance.pool_size===fpsIn?true:false);},
+                                    has_changed_poolsize=function(taskKey,poolSizeIn){return (task_list[taskKey].instance.pool_size===poolSizeIn?true:false);};
 console.log(
 "instance.fps: ",task_list[taskIn].instance.fps,"\n"+
 "instance.pool_size: ",task_list[taskIn].instance.pool_size,"\n"+
@@ -270,15 +275,15 @@ console.log(
 "default_poolsize: ",default_poolsize,"\n"+
 
 "base_change_fps: ",base_change_fps,"\n"+
-"base_change_poolsize: ",base_change_poolsize);
-                                if(taskIn==='core0' || taskIn==='core1'){//fps cannot change
-                                    if(has_unchanged_fps(taskIn)){
+"base_change_poolsize: ",base_change_poolsize,"\n\n");
+                                if(taskIn==='core0' || taskIn==='core1' || taskIn==='core2' || taskIn==='core3'){//fps cannot change
+                                    if(!has_unchanged_fps(taskIn)){
                                         throw new Error("[C0RE TEST] Running test '"+taskIn+"' FPS (frames per second) comparision. \n"+
                                             "This has an FPS of '"+task_list[taskIn].instance.fps+"' expecting '"+default_fps+"' FPS. "+
                                             "Fixed FPS: "+(task_list[taskIn].instance.fixed_fps?'fixed':'non-fixed')+".");
                                     }
                                 }
-                                if(taskIn==='core0'){//fps & pool size cannot change
+                                if(taskIn==='core0' || taskIn==='core2'){//pool size cannot change - 'queue' types
                                     if(!has_unchanged_poolsize(taskIn)){
                                         throw new Error("[C0RE TEST] Running test '"+taskIn+"' pool size comparision. \n"+
                                             "This has an FPS of '"+task_list[taskIn].instance.pool_size+"' expecting '"+default_poolsize+"' FPS. "+
@@ -286,18 +291,17 @@ console.log(
                                     }
                                 }
 
-                                if(taskIn==='core1'){//pool size can be changed
+                                if(taskIn==='core1' || taskIn==='core3'){//pool size can be changed
                                     if(!has_changed_poolsize(taskIn, task_list[taskIn].target_poolsize)){
                                         throw new Error("[C0RE TEST] Running test '"+taskIn+"' pool size comparision. \n"+
-                                            "This has an FPS of '"+task_list[taskIn].instance.pool_size+"' expecting '"+task_list[taskIn].target_poolsize+"' FPS. "+
+                                            "This has an pool size of '"+task_list[taskIn].instance.pool_size+"' expecting '"+task_list[taskIn].target_poolsize+"'. "+
                                             "Fixed Pool size: "+(task_list[taskIn].instance.fixed_pool?'fixed':'non-fixed')+".");
                                     }
-                                    //
+                                }
+                                if(taskIn==='core3'){
+                                    throw new Error("WIP!");
                                 }
 
-                                if(taskIn==='core2'){
-
-                                }
                             }
 // analysis_events
 // list_events
@@ -317,8 +321,9 @@ console.log(
                         };
 //events_compare('core0', 'list');process.exit();
 //events_compare('core1', 'list');process.exit();
-events_compare('core2', 'list');process.exit();
-//events_compare('core3', 'list');process.exit();
+events_compare('core0', 'list');events_compare('core1', 'list');events_compare('core2', 'list');
+//events_compare('core2', 'list');process.exit();
+events_compare('core3', 'list');process.exit();
                     for(var c0re_set in task_list){
                         if(!utils.obj_valid_key(task_list,c0re_set)){continue;}
 

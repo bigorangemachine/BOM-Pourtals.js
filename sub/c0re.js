@@ -29,6 +29,7 @@ module.exports = function(){//dependancies
     function c0re(successFunc, failFunc, opts){
         if(typeof(arguments[arguments.length-1])==='object' && (arguments[arguments.length-1] instanceof Object)){opts=arguments[arguments.length-1];}
         else if(!opts && typeof(arguments[arguments.length-1])!=='object'){opts={};}
+        if(typeof(arguments[0])!=='function'){throw new Error("[c0re] Requires at least one argument to contain a function.");}
 //console.log('[c0re] CONSTRUCTOR  opts',opts);
         opts=merge(true,{},opts);//break PBR
 

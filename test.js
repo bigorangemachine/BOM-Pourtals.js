@@ -59,18 +59,13 @@ var do_terminate=function(reportTrace){
 
         var do_sets=[
             function(doNext){
-                do_msg("Running Constructor Tests:"+"\n"+
+                do_msg("Running c0reModel Constructor Tests:"+"\n"+
                     "1)\t"+"c0reModel(doFunc)"+"\n"+
                     "2)\t"+"c0reModel(doFunc,opts)"+"\n"+
-                    "3)\t"+"c0reModel(posFunc,negFunc,doFunc,opts)"+"\n"+
-                    "4)\t"+"c0reModel(posFunc,negFunc,doFunc,idleFunc,opts)");
-                /*
-                * !!!!!!!!!!!!!!!!!!!!!!!!!! TESTING THESE!!!!
-                * c0reModel(doFunc)
-                * c0reModel(doFunc,opts)
-                * c0reModel(posFunc,negFunc,doFunc,opts)
-                * c0reModel(posFunc,negFunc,doFunc,idleFunc,opts)
-                */
+                    "3)\t"+"c0reModel(posFunc,negFunc,doFunc)"+"\n"+
+                    "4)\t"+"c0reModel(posFunc,negFunc,doFunc,opts)"+"\n"+
+                    "5)\t"+"c0reModel(posFunc,negFunc,doFunc,idleFunc,opts)");
+
                 try{test1=new c0reModel(function(){});}
                 catch(e){do_err("[C0REMODEL TEST] Could not build 'SINGLE ARG'\n"+e.toString());}
 
@@ -85,6 +80,25 @@ var do_terminate=function(reportTrace){
 
                 try{test5=new c0reModel(function(){},function(){},function(){},function(){},{});}
                 catch(e){do_err("[C0REMODEL TEST] Could not build 'QUADTRUPLE ARG - PLUS OPTIONS'\n"+e.toString());}
+
+                doNext();
+            },
+            function(doNext){
+                do_msg("Running c0re Constructor Tests:"+"\n"+
+                    "1)\t"+"c0re(successFunc)"+"\n"+
+                    "2)\t"+"c0re(successFunc,opts)"+"\n"+
+                    "3)\t"+"c0re(successFunc,failFunc,opts)");
+
+                var c0retest1={},c0retest2={},c0retest3={};
+                try{c0retest1=new c0re(function(){});}
+                catch(e){do_err("[C0RE TEST] Could not build 'SINGLE ARG'\n"+e.toString());}
+
+                try{c0retest2=new c0re(function(){},{});}
+                catch(e){do_err("[C0RE TEST] Could not build 'SINGLE ARG - PLUS OPTIONS'\n"+e.toString());}
+
+                try{c0retest3=new c0re(function(){},function(){},{});}
+                catch(e){do_err("[C0RE TEST] Could not build 'TRIPLE ARG'\n"+e.toString());}
+
 
                 doNext();
             },
