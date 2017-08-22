@@ -540,7 +540,7 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
                     if(!coreModelIn.is_completed){
 //console.log("YUP! ",coreModelIn.is_completed,coreModelIn.status);
                         coreModelIn.mark_pos();
-                        c0reModel.result_args=(arguments.length>0?arguments:[]);
+                        c0reModel.result_args=utils.convert_args(arguments);
                         //coreModelIn.action();
                         self.rebuild_info();
                         coreModelIn.tasks.pos.apply(self, c0reModel.result_args);}
@@ -549,7 +549,7 @@ console.log("[c0re] REMOVE", (did_del?'TRUE':'FALSE'));
                     if(!coreModelIn.is_completed){
 //console.log("NOPE! ",coreModelIn.is_completed,coreModelIn.status);process.exit();
                         coreModelIn.mark_neg();
-                        c0reModel.result_args=(arguments.length>0?arguments:[]);
+                        c0reModel.result_args=utils.convert_args(arguments);
                         //coreModelIn.action();
                         self.rebuild_info();
                         coreModelIn.tasks.neg.apply(self, c0reModel.result_args);}
