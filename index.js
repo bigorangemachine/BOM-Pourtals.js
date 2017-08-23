@@ -173,7 +173,7 @@ module.exports = function(){//dependancies
                 if(!self.silent){console.warn("[c0redP] Could not exit because of current status '"+self.status+"'.");}
             }
         };
-		self_init.apply(this,[opts]);//start! self_init that passes the 'this' context through
+        self_init.apply(this,[opts]);//start! self_init that passes the 'this' context through
 	};
 
     return c0redP;
